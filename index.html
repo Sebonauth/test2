@@ -37,12 +37,22 @@
     let model;
     async function loadModel() {
         try {
+            // Attempt to load the model from the hosted source
             model = await tf.loadLayersModel('https://storage.googleapis.com/tfjs-models/tfjs/mnist/model.json');
-            console.log('Model loaded');
+            console.log('Model loaded from hosted source');
             document.getElementById('loadingMessage').innerText = 'Model loaded. You can now draw and predict.';
         } catch (error) {
-            console.error('Error loading the model:', error);
-            document.getElementById('loadingMessage').innerText = 'Failed to load the model. Please check your internet connection and try again.';
+            console.error('Error loading the model from hosted source:', error);
+            document.getElementById('loadingMessage').innerText = 'Failed to load the model from hosted source. Attempting to load local model...';
+            try {
+                // Attempt to load the model from a local source
+                model = await tf.loadLayersModel('model/model.json');
+                console.log('Model loaded from local source');
+                document.getElementById('loadingMessage').innerText = 'Model loaded. You can now draw and predict.';
+            } catch (localError) {
+                console.error('Error loading the model from local source:', localError);
+                document.getElementById('loadingMessage').innerText = 'Failed to load the model. Please check your internet connection or local setup and try again.';
+            }
         }
     }
     loadModel();
