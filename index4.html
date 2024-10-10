@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Handwritten Digit Recognition</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
+    <style>
+        #canvas {
+            border: 1px solid black;
+            cursor: crosshair;
+        }
+        #container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        #buttons {
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+<div id="container">
+    <h2>Handwritten Digit Recognition</h2>
+    <canvas id="canvas" width="280" height="280"></canvas>
+    <div id="buttons">
+        <button onclick="clearCanvas()">Clear</button>
+        <button onclick="predictDigit()">Predict</button>
+    </div>
+    <p id="loadingMessage" style="color: red;">Model loading... Please wait.</p>
+    <p>Prediction: <span id="prediction">None</span></p>
+</div>
+
+<script>
+    // Load the pre-trained MNIST model from TensorFlow.js
+    let model;
+    async function loadModel() {
+        model = await tf.loadLayersModel('https://storage.googleapis.com/tfjs-models/tfjs/mnist/model.json');
+        console.log('Model loaded');
+        document.getElementById('loadingMessage').innerText = 'Model loaded. You can now draw and predict.';
+    }
+    loadModel();
+
+    // Set up the canvas for drawing digits
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    let mousePressed = false;
+
+    canvas.addEventListener('mousedown', function () {
+        mousePressed = true;
+    });
+
+    canvas.addEventListener('mouseup', function () {
+        mousePressed = false;
+        ctx.beginPath();
+    });
+
+    canvas.addEventListener('mousemove', function (event) {
+        if (mousePressed) {
+            const rect = canvas.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+            draw(x, y);
+        }
+    });
+
+    function draw(x, y) {
+        ctx.lineWidth = 15;
+        ctx.lineCap = 'round';
+        ctx.strokeStyle = 'black';
+
+        ctx.lineTo(x, y);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+    }
+
+    function clearCanvas() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+
+    // Function to predict the drawn digit
+    async function predictDigit() {
+        if (!model) {
+            alert('Model not loaded yet. Please wait.');
+            return;
+        }
+
+        // Get the image data from the canvas and prepare it for prediction
+        let imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        let data = tf.browser.fromPixels(imageData, 1);
+        data = tf.image.resizeBilinear(data, [28, 28]); // Resize to 28x28
+        data = data.mean(2).expandDims(-1).expandDims(0); // Convert to grayscale and match input shape
+        data = data.toFloat().div(255); // Normalize the data
+
+        // Predict the digit
+        const prediction = model.predict(data);
+        const predictedIndex = prediction.argMax(1).dataSync()[0];
+        document.getElementById('prediction').innerText = predictedIndex;
+    }
+</script>
+</body>
+</html>
